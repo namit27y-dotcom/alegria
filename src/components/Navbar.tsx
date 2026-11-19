@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { LOGO_WORDMARK } from '../data/festival';
+import { LOGO_PILLAI, LOGO_WORDMARK } from '../data/festival';
 
 interface NavbarProps {
   onToggleTheme: () => void;
@@ -12,7 +12,12 @@ export function Navbar({ onToggleTheme }: NavbarProps) {
 
   return (
     <nav>
-      <a className="lg" href="#hero" aria-label="Alegria home">
+      <a className="lg" href="#hero" aria-label="Pillai Alegria home">
+        <img
+          className="pillai-badge"
+          src={LOGO_PILLAI}
+          alt="Pillai Alegria — The Festival of Joy"
+        />
         <img className="lw" src={LOGO_WORDMARK} alt="Alegria" />
       </a>
       <button

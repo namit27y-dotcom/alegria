@@ -151,6 +151,16 @@ body.sc nav {
   object-fit: contain;
 }
 
+.lg .pillai-badge {
+  width: auto;
+  height: 36px;
+  border-radius: 8px;
+  object-fit: contain;
+  border: 1px solid rgba(239, 195, 107, .58);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, .35);
+  background: #f5dfba;
+}
+
 nav ul {
   display: flex;
   gap: 30px;
@@ -1805,6 +1815,16 @@ label {
   color: #f2e4c4;
 }
 
+.op-pillai-badge {
+  width: 74px;
+  height: auto;
+  display: block;
+  border-radius: 8px;
+  border: 1.5px solid rgba(245, 207, 114, .82);
+  box-shadow: 0 6px 14px rgba(0, 0, 0, .48);
+  background: #f5dfba;
+}
+
 .op-disciplines {
   position: relative;
   z-index: 2;
@@ -1948,11 +1968,28 @@ footer p {
   font-size: 15px;
 }
 
+.footer-logos {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: wrap;
+  margin-bottom: 16px;
+}
+
 .fl2 {
   display: block;
-  width: 190px;
+  width: 170px;
   height: auto;
-  margin-bottom: 16px;
+}
+
+.footer-pillai-logo {
+  display: block;
+  width: 102px;
+  height: auto;
+  border-radius: 10px;
+  border: 1px solid rgba(239, 195, 107, .48);
+  box-shadow: 0 6px 18px rgba(0, 0, 0, .45);
+  background: #f5dfba;
 }
 
 .wm {
@@ -2097,6 +2134,14 @@ footer p {
 }
 
 @media (max-width: 560px) {
+  .lg .pillai-badge {
+    height: 30px;
+  }
+
+  .lg .lw {
+    height: 32px;
+  }
+
   #hero {
     background-position: 55% center;
     min-height: 92svh;

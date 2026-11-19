@@ -54,6 +54,7 @@ export interface RegistrationRecord {
 
 export const LOGO_MAIN = '/assets/alegria-rise-of-olympus.webp';
 export const LOGO_WORDMARK = '/assets/alegria-wordmark.webp';
+export const LOGO_PILLAI = '/assets/pillai-alegria-logo.png';
 export const HERO_BG = '/assets/olympus-hero-background.png';
 
 export const CATEGORIES: Array<'All' | EventCategory> = [

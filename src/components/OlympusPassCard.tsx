@@ -16,6 +16,7 @@ import {
 } from 'lucide-react';
 import {
   FESTIVAL_EVENTS,
+  LOGO_PILLAI,
   type EventCategory,
   type RegistrationRecord
 } from '../data/festival';
@@ -95,23 +96,6 @@ function CornerFlourish({ className }: { className: string }) {
       <ellipse cx="12" cy="16" rx="4" ry="2" transform="rotate(-45 12 16)" fill="currentColor" />
       <ellipse cx="20" cy="10" rx="3.5" ry="1.8" transform="rotate(-20 20 10)" fill="currentColor" />
       <ellipse cx="9" cy="24" rx="3.5" ry="1.8" transform="rotate(-70 9 24)" fill="currentColor" />
-    </svg>
-  );
-}
-
-function ParthenonEmblem() {
-  return (
-    <svg width="46" height="36" viewBox="0 0 64 50" fill="none" aria-hidden="true">
-      <path d="M8 17L32 5L56 17H8Z" stroke="#f5cf72" strokeWidth="2.2" fill="rgba(245,207,114,0.14)" />
-      <rect x="10" y="19" width="44" height="3" fill="#f5cf72" />
-      <path
-        d="M15 24V40M23 24V40M32 24V40M41 24V40M49 24V40"
-        stroke="#f5cf72"
-        strokeWidth="3"
-        strokeLinecap="square"
-      />
-      <rect x="8" y="40" width="48" height="3" fill="#f5cf72" />
-      <rect x="5" y="44" width="54" height="3" fill="#d3982e" />
     </svg>
   );
 }
@@ -286,7 +270,11 @@ export function OlympusPassCard({ registration, onReset, onToast }: OlympusPassC
               </div>
 
               <div className="op-emblem-col">
-                <ParthenonEmblem />
+                <img
+                  className="op-pillai-badge"
+                  src={LOGO_PILLAI}
+                  alt="Pillai Alegria — The Festival of Joy"
+                />
                 <div className="op-emblem-label">
                   Pillai College of
                   <br />

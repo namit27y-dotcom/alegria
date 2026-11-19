@@ -1,4 +1,4 @@
-import { LOGO_MAIN } from '../data/festival';
+import { LOGO_MAIN, LOGO_PILLAI } from '../data/festival';
 
 export function Footer() {
   return (
@@ -6,7 +6,14 @@ export function Footer() {
       <div className="w">
         <div className="fg">
           <div>
-            <img className="fl2" src={LOGO_MAIN} alt="Alegria, Rise of Olympus" />
+            <div className="footer-logos">
+              <img className="fl2" src={LOGO_MAIN} alt="Alegria, Rise of Olympus" />
+              <img
+                className="footer-pillai-logo"
+                src={LOGO_PILLAI}
+                alt="Pillai Alegria — The Festival of Joy"
+              />
+            </div>
             <p>The festival of joy. 12–14 March 2027. Forged by mortals, blessed by the gods.</p>
           </div>
           <div>
