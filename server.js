@@ -7,6 +7,9 @@ const path = require('node:path');
 const crypto = require('node:crypto');
 
 const ROOT = __dirname;
+const DIST = fs.existsSync(path.join(ROOT, 'dist'))
+  ? path.join(ROOT, 'dist')
+  : path.join(process.cwd(), 'dist');
 const PUBLIC = fs.existsSync(path.join(ROOT, 'public'))
   ? path.join(ROOT, 'public')
   : path.join(process.cwd(), 'public');
@@ -78,7 +81,7 @@ function saveDB() {
   }
 }
 
-const mime = {'.html':'text/html; charset=utf-8','.css':'text/css; charset=utf-8','.js':'text/javascript; charset=utf-8','.json':'application/json; charset=utf-8','.png':'image/png','.jpg':'image/jpeg','.jpeg':'image/jpeg','.webp':'image/webp','.svg':'image/svg+xml'};
+const mime = {'.html':'text/html; charset=utf-8','.css':'text/css; charset=utf-8','.js':'text/javascript; charset=utf-8','.mjs':'text/javascript; charset=utf-8','.json':'application/json; charset=utf-8','.png':'image/png','.jpg':'image/jpeg','.jpeg':'image/jpeg','.webp':'image/webp','.svg':'image/svg+xml','.ico':'image/x-icon','.woff2':'font/woff2'};
 function send(res,status,data,headers={}) {
   res.writeHead(status, {'Content-Type':'application/json; charset=utf-8','Cache-Control':'no-store',...headers});
   res.end(JSON.stringify(data));
@@ -125,8 +128,8 @@ function passCode() {
   return code;
 }
 function safeRegistration(r) {
-  const {name,email,phone,college,year,pass,events,code,status,createdAt}=r;
-  return {name,email,phone,college,year,pass,events,code,status,createdAt};
+  const {name,email,phone,college,year,pass,events,photo,code,status,createdAt}=r;
+  return {name,email,phone,college,year,pass,events,photo:photo||'',code,status,createdAt};
 }
 function adminRegistration(r) {
   return {id:r.id,...safeRegistration(r)};
@@ -144,6 +147,8 @@ async function handleRequest(req, res) {
       const phone=String(b.phone||'').trim(), college=String(b.college||'').trim();
       const year=String(b.year||''), pass=String(b.pass||'Mortal');
       const ids=Array.isArray(b.events)?[...new Set(b.events.map(Number))]:[];
+      const rawPhoto=typeof b.photo==='string'?b.photo.trim():'';
+      const photo=rawPhoto && /^data:image\/(png|jpeg|jpg|webp);base64,/i.test(rawPhoto) && rawPhoto.length<=350000 ? rawPhoto : '';
       if(name.length<2 || name.length>90) return send(res,400,{error:'Please enter a valid full name.'});
       if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return send(res,400,{error:'Please enter a valid email address.'});
       if(!/^[0-9+ ()-]{10,18}$/.test(phone)) return send(res,400,{error:'Please enter a valid phone number.'});
@@ -152,7 +157,7 @@ async function handleRequest(req, res) {
       if(!ids.length || ids.some(id=>!FESTIVAL_EVENTS.some(e=>e.id===id))) return send(res,400,{error:'Select at least one valid event.'});
       if(pass==='Mortal' && ids.length!==1) return send(res,400,{error:'Mortal pass is for one event. Select one event or choose Hero/Immortal.'});
       if(pass==='Hero' && ids.length>5) return send(res,400,{error:'Hero pass allows up to five events.'});
-      const record={id:crypto.randomUUID(),code:passCode(),name,email,phone,college,year,pass,events:ids,status:'confirmed',createdAt:new Date().toISOString()};
+      const record={id:crypto.randomUUID(),code:passCode(),name,email,phone,college,year,pass,events:ids,photo,status:'confirmed',createdAt:new Date().toISOString()};
       db.registrations.push(record); saveDB();
       return send(res,201,{message:'Registration successful.',registration:safeRegistration(record)});
     }
@@ -184,16 +189,25 @@ async function handleRequest(req, res) {
       }
       return send(res,404,{error:'Admin endpoint not found.'});
     }
-    // Static frontend
+    // Static frontend (prefer Vite build output in dist/, fall back to public/)
     let reqPath = '/';
     try { reqPath = decodeURIComponent(route); } catch { return send(res,400,{error:'Bad request'}); }
-    const resolvedPublic = path.resolve(PUBLIC);
-    const file = path.resolve(reqPath==='/'?path.join(resolvedPublic,'index.html'):path.join(resolvedPublic,reqPath.replace(/^\/+/,'')));
-    if(file!==resolvedPublic && !file.startsWith(resolvedPublic+path.sep)) return send(res,403,{error:'Forbidden'});
-    if(!fs.existsSync(file) || fs.statSync(file).isDirectory()) return send(res,404,{error:'Not found'});
-    const ext=path.extname(file).toLowerCase();
+    const rel = reqPath==='/'?'index.html':reqPath.replace(/^\/+/,'');
+    const staticRoots = [DIST, PUBLIC].filter(dir=>fs.existsSync(dir));
+    let resolvedFile = null;
+    for (const rootDir of staticRoots) {
+      const resolvedRoot = path.resolve(rootDir);
+      const candidate = path.resolve(path.join(resolvedRoot, rel));
+      if (candidate!==resolvedRoot && !candidate.startsWith(resolvedRoot+path.sep)) return send(res,403,{error:'Forbidden'});
+      if (fs.existsSync(candidate) && !fs.statSync(candidate).isDirectory()) {
+        resolvedFile = candidate;
+        break;
+      }
+    }
+    if(!resolvedFile) return send(res,404,{error:'Not found'});
+    const ext=path.extname(resolvedFile).toLowerCase();
     res.writeHead(200,{'Content-Type':mime[ext]||'application/octet-stream','X-Content-Type-Options':'nosniff','Referrer-Policy':'strict-origin-when-cross-origin'});
-    fs.createReadStream(file).pipe(res);
+    fs.createReadStream(resolvedFile).pipe(res);
   } catch(err) {
     console.error(err);
     if(!res.headersSent) send(res,500,{error:err.message||'Internal server error'});
