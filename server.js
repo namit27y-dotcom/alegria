@@ -1,13 +1,21 @@
 // Alegria — Rise of Olympus | dependency-free Node.js API server
-// Node 18+ recommended. Persistent JSON datastore is created in /data.
+// Node 18+ recommended. Persistent JSON datastore is created in /data locally, or /tmp on serverless platforms.
 const http = require('node:http');
 const fs = require('node:fs');
+const os = require('node:os');
 const path = require('node:path');
 const crypto = require('node:crypto');
 
 const ROOT = __dirname;
-const PUBLIC = path.join(ROOT, 'public');
-const DATA_DIR = path.join(ROOT, 'data');
+const PUBLIC = fs.existsSync(path.join(ROOT, 'public'))
+  ? path.join(ROOT, 'public')
+  : path.join(process.cwd(), 'public');
+const IS_SERVERLESS = Boolean(
+  process.env.VERCEL || process.env.AWS_LAMBDA_FUNCTION_NAME || process.env.NOW_REGION
+);
+const DATA_DIR = IS_SERVERLESS
+  ? path.join(os.tmpdir(), 'alegria-data')
+  : path.join(ROOT, 'data');
 const DB_FILE = path.join(DATA_DIR, 'db.json');
 const PORT = Number(process.env.PORT || 3000);
 const ADMIN_EMAIL = (process.env.ADMIN_EMAIL || 'admin@alegria.local').toLowerCase();
@@ -27,28 +35,63 @@ const FESTIVAL_EVENTS = [
   {id:11,name:'Ares Arena',category:'Gaming',prize:'₹35,000',team:'Team of 5'},
   {id:12,name:'Zeus’s Thunderbolt',category:'Gaming',prize:'₹20,000',team:'Squad of 4'}
 ];
-fs.mkdirSync(DATA_DIR, {recursive:true});
+
+function createInitialDB() {
+  return {registrations:[], admins:[{email:ADMIN_EMAIL, createdAt:new Date().toISOString()}]};
+}
+
+let fsWritable = true;
+try {
+  fs.mkdirSync(DATA_DIR, {recursive:true});
+} catch (err) {
+  fsWritable = false;
+  console.warn('Data directory not writable, using in-memory store:', err.message);
+}
+
 function readDB() {
-  if (!fs.existsSync(DB_FILE)) {
-    const initial = {registrations:[], admins:[{email:ADMIN_EMAIL, createdAt:new Date().toISOString()}]};
-    fs.writeFileSync(DB_FILE, JSON.stringify(initial,null,2));
-    return initial;
+  if (!fsWritable) return createInitialDB();
+  try {
+    if (!fs.existsSync(DB_FILE)) {
+      const initial = createInitialDB();
+      fs.writeFileSync(DB_FILE, JSON.stringify(initial, null, 2));
+      return initial;
+    }
+    return JSON.parse(fs.readFileSync(DB_FILE, 'utf8'));
+  } catch (err) {
+    console.warn('Database read/init fallback to memory:', err.message);
+    fsWritable = false;
+    return createInitialDB();
   }
-  try { return JSON.parse(fs.readFileSync(DB_FILE,'utf8')); }
-  catch { throw new Error('Database file is invalid JSON. Back up data/db.json and restore valid JSON.'); }
 }
+
 let db = readDB();
+
 function saveDB() {
-  const tmp = DB_FILE + '.tmp';
-  fs.writeFileSync(tmp, JSON.stringify(db,null,2));
-  fs.renameSync(tmp, DB_FILE);
+  if (!fsWritable) return;
+  try {
+    const tmp = DB_FILE + '.tmp';
+    fs.writeFileSync(tmp, JSON.stringify(db, null, 2));
+    fs.renameSync(tmp, DB_FILE);
+  } catch (err) {
+    console.warn('Database save fallback to memory:', err.message);
+    fsWritable = false;
+  }
 }
+
 const mime = {'.html':'text/html; charset=utf-8','.css':'text/css; charset=utf-8','.js':'text/javascript; charset=utf-8','.json':'application/json; charset=utf-8','.png':'image/png','.jpg':'image/jpeg','.jpeg':'image/jpeg','.webp':'image/webp','.svg':'image/svg+xml'};
 function send(res,status,data,headers={}) {
   res.writeHead(status, {'Content-Type':'application/json; charset=utf-8','Cache-Control':'no-store',...headers});
   res.end(JSON.stringify(data));
 }
 function readBody(req) {
+  if (req.body !== undefined) {
+    if (typeof req.body === 'string') {
+      try { return Promise.resolve(req.body ? JSON.parse(req.body) : {}); }
+      catch { return Promise.reject(new Error('Invalid JSON body')); }
+    }
+    return Promise.resolve(req.body || {});
+  }
+  if (req.readableEnded) return Promise.resolve({});
   return new Promise((resolve,reject)=>{
     let raw=''; req.on('data',chunk=>{raw+=chunk; if(raw.length>1e6) reject(new Error('Request body too large'));});
     req.on('end',()=>{try{resolve(raw?JSON.parse(raw):{});}catch{reject(new Error('Invalid JSON body'));}});
@@ -85,11 +128,16 @@ function safeRegistration(r) {
   const {name,email,phone,college,year,pass,events,code,status,createdAt}=r;
   return {name,email,phone,college,year,pass,events,code,status,createdAt};
 }
-const server=http.createServer(async(req,res)=>{
-  const url=new URL(req.url,'http://localhost');
-  const route=url.pathname;
+function adminRegistration(r) {
+  return {id:r.id,...safeRegistration(r)};
+}
+
+async function handleRequest(req, res) {
+  const host = (req.headers && req.headers.host) || 'localhost';
+  const url = new URL(req.url || '/', `http://${host}`);
+  const route = url.pathname;
   try {
-    if(req.method==='GET' && route==='/api/health') return send(res,200,{ok:true,service:'Alegria API',database:'file-json',time:new Date().toISOString()});
+    if(req.method==='GET' && route==='/api/health') return send(res,200,{ok:true,service:'Alegria API',database:fsWritable?'file-json':'memory',time:new Date().toISOString()});
     if(req.method==='GET' && route==='/api/events') return send(res,200,{events:FESTIVAL_EVENTS});
     if(req.method==='POST' && route==='/api/registrations') {
       const b=await readBody(req);
@@ -126,20 +174,23 @@ const server=http.createServer(async(req,res)=>{
       if(!user || user.role!=='admin' || user.sub!==ADMIN_EMAIL) return send(res,401,{error:'Admin authentication required.'});
       if(req.method==='GET' && route==='/api/admin/registrations') {
         const rows=[...db.registrations].sort((a,b)=>b.createdAt.localeCompare(a.createdAt));
-        return send(res,200,{total:rows.length,confirmed:rows.filter(r=>r.status==='confirmed').length,registrations:rows.map(safeRegistration)});
+        return send(res,200,{total:rows.length,confirmed:rows.filter(r=>r.status==='confirmed').length,registrations:rows.map(adminRegistration)});
       }
       if(req.method==='PATCH' && route.startsWith('/api/admin/registrations/')) {
         const id=decodeURIComponent(route.split('/').pop()), b=await readBody(req);
         const record=db.registrations.find(r=>r.id===id);
         if(!record) return send(res,404,{error:'Registration not found.'});
         if(!['confirmed','checked-in','cancelled'].includes(b.status)) return send(res,400,{error:'Invalid registration status.'});
-        record.status=b.status; saveDB(); return send(res,200,{registration:safeRegistration(record)});
+        record.status=b.status; saveDB(); return send(res,200,{registration:adminRegistration(record)});
       }
       return send(res,404,{error:'Admin endpoint not found.'});
     }
     // Static frontend
-    let file=route==='/'?path.join(PUBLIC,'index.html'):path.join(PUBLIC,decodeURIComponent(route));
-    if(!file.startsWith(PUBLIC)) return send(res,403,{error:'Forbidden'});
+    let reqPath = '/';
+    try { reqPath = decodeURIComponent(route); } catch { return send(res,400,{error:'Bad request'}); }
+    const resolvedPublic = path.resolve(PUBLIC);
+    const file = path.resolve(reqPath==='/'?path.join(resolvedPublic,'index.html'):path.join(resolvedPublic,reqPath.replace(/^\/+/,'')));
+    if(file!==resolvedPublic && !file.startsWith(resolvedPublic+path.sep)) return send(res,403,{error:'Forbidden'});
     if(!fs.existsSync(file) || fs.statSync(file).isDirectory()) return send(res,404,{error:'Not found'});
     const ext=path.extname(file).toLowerCase();
     res.writeHead(200,{'Content-Type':mime[ext]||'application/octet-stream','X-Content-Type-Options':'nosniff','Referrer-Policy':'strict-origin-when-cross-origin'});
@@ -148,5 +199,12 @@ const server=http.createServer(async(req,res)=>{
     console.error(err);
     if(!res.headersSent) send(res,500,{error:err.message||'Internal server error'});
   }
-});
-server.listen(PORT,()=>console.log(`Alegria server running at http://localhost:${PORT}`));
+}
+
+const server = http.createServer(handleRequest);
+if (require.main === module && !process.env.VERCEL) {
+  server.listen(PORT, '0.0.0.0', ()=>console.log(`Alegria server running at http://0.0.0.0:${PORT}`));
+}
+
+module.exports = handleRequest;
+module.exports.server = server;

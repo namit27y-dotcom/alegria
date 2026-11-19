@@ -5,7 +5,9 @@
   "description": "Full-stack Alegria festival website",
   "scripts": {
     "start": "node server.js",
-    "dev": "node server.js"
+    "dev": "node server.js",
+    "build": "node --check server.js && node --check api/index.js",
+    "lint": "node --check server.js && node --check api/index.js"
   },
   "engines": {
     "node": ">=18"
