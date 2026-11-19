@@ -1,0 +1,270 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>Alegria Admin — Rise of Olympus</title>
+    <style>
+        :root {
+            color-scheme: dark;
+            --bg: #080e24;
+            --panel: #111b3b;
+            --line: #29365b;
+            --gold: #e8c26a;
+            --muted: #9aa7c8;
+            --white: #f4f3ed
+        }
+
+        * {
+            box-sizing: border-box
+        }
+
+        body {
+            margin: 0;
+            background: radial-gradient(ellipse at 50% -20%, #253e78 0, transparent 55%), var(--bg);
+            color: var(--white);
+            font: 15px/1.5 system-ui, sans-serif
+        }
+
+        .wrap {
+            max-width: 1180px;
+            margin: auto;
+            padding: 36px 22px
+        }
+
+        .top {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 20px;
+            margin-bottom: 32px
+        }
+
+        .brand {
+            font: 30px Georgia, serif;
+            color: var(--gold)
+        }
+
+        .muted {
+            color: var(--muted)
+        }
+
+        .panel {
+            background: rgba(17, 27, 59, .92);
+            border: 1px solid var(--line);
+            border-radius: 18px;
+            padding: 24px;
+            box-shadow: 0 18px 55px #0004
+        }
+
+        .login {
+            max-width: 430px;
+            margin: 9vh auto
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 14px;
+            margin: 22px 0
+        }
+
+        .stat {
+            font: 36px Georgia, serif;
+            color: var(--gold)
+        }
+
+        label {
+            display: block;
+            margin: 14px 0 6px;
+            color: var(--muted)
+        }
+
+        input,
+        select {
+            width: 100%;
+            padding: 13px;
+            border-radius: 10px;
+            border: 1px solid var(--line);
+            background: #080f29;
+            color: white;
+            font: inherit
+        }
+
+        button,
+        .btn {
+            border: 0;
+            border-radius: 999px;
+            background: linear-gradient(110deg, #d4a63a, #fff0b7, #d4a63a);
+            color: #211806;
+            font-weight: 700;
+            padding: 12px 19px;
+            cursor: pointer
+        }
+
+        .btn.ghost {
+            background: transparent;
+            border: 1px solid var(--line);
+            color: var(--white)
+        }
+
+        .error {
+            color: #ff8b9a;
+            min-height: 22px
+        }
+
+        .table-wrap {
+            overflow: auto
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            min-width: 800px
+        }
+
+        th,
+        td {
+            text-align: left;
+            padding: 13px 10px;
+            border-bottom: 1px solid var(--line);
+            vertical-align: top
+        }
+
+        th {
+            color: var(--gold);
+            font-weight: 600
+        }
+
+        .pill {
+            display: inline-block;
+            padding: 4px 9px;
+            border: 1px solid var(--line);
+            border-radius: 30px;
+            color: var(--muted);
+            font-size: 12px
+        }
+
+        .actions {
+            display: flex;
+            gap: 6px;
+            flex-wrap: wrap
+        }
+
+        .actions button {
+            padding: 7px 11px;
+            font-size: 12px
+        }
+
+        .hidden {
+            display: none !important
+        }
+
+        .bar {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            flex-wrap: wrap
+        }
+
+        .bar input {
+            max-width: 300px
+        }
+
+        @media(max-width:700px) {
+            .grid {
+                grid-template-columns: 1fr
+            }
+
+            .top {
+                align-items: flex-start;
+                flex-direction: column
+            }
+
+            .wrap {
+                padding: 22px 14px
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <main class="wrap">
+        <div class="top">
+            <div>
+                <div class="brand">RISE OF OLYMPUS</div>
+                <div class="muted">Alegria festival administration</div>
+            </div><a class="btn ghost" href="/">← View website</a>
+        </div>
+        <section id="login" class="panel login">
+            <h1 style="font:34px Georgia;margin-top:0">Admin sign in</h1>
+            <p class="muted">Access festival registrations and check-in status.</p>
+            <form id="loginForm"><label>Email</label><input name="email" type="email" required
+                    value="admin@alegria.local"><label>Password</label><input name="password" type="password" required
+                    placeholder="Admin password">
+                <p class="error" id="loginError"></p><button type="submit">Sign in</button>
+            </form>
+            <p class="muted" style="font-size:12px">Default credentials are documented in README.md. Change them before
+                deployment.</p>
+        </section>
+        <section id="dashboard" class="hidden">
+            <div class="bar">
+                <h1 style="font:38px Georgia;margin:0 auto 0 0">The register</h1><button class="btn ghost"
+                    id="refresh">Refresh</button><button class="btn ghost" id="logout">Sign out</button>
+            </div>
+            <div class="grid">
+                <div class="panel">
+                    <div class="muted">Total registrations</div>
+                    <div class="stat" id="total">0</div>
+                </div>
+                <div class="panel">
+                    <div class="muted">Confirmed</div>
+                    <div class="stat" id="confirmed">0</div>
+                </div>
+                <div class="panel">
+                    <div class="muted">Checked in</div>
+                    <div class="stat" id="checked">0</div>
+                </div>
+            </div>
+            <div class="panel">
+                <div class="bar" style="margin-bottom:18px">
+                    <h2 style="font:26px Georgia;margin:0 auto 0 0">Attendee registrations</h2><input id="filter"
+                        placeholder="Search name, email, pass code…">
+                </div>
+                <div class="table-wrap">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Attendee</th>
+                                <th>Contact</th>
+                                <th>College / Year</th>
+                                <th>Pass / Events</th>
+                                <th>Pass code</th>
+                                <th>Status / Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="rows"></tbody>
+                    </table>
+                </div>
+                <p class="muted" id="empty"></p>
+            </div>
+        </section>
+    </main>
+    <script>
+        let token = localStorage.getItem('olympus-admin-token') || '', all = [];
+        const $ = s => document.querySelector(s);
+        async function api(url, opts = {}) { const r = await fetch(url, { ...opts, headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: 'Bearer ' + token } : {}), ...(opts.headers || {}) } }); const d = await r.json(); if (!r.ok) throw Error(d.error || 'Request failed'); return d }
+        function show() { $('#login').classList.toggle('hidden', !!token); $('#dashboard').classList.toggle('hidden', !token); if (token) load() }
+        $('#loginForm').onsubmit = async e => { e.preventDefault(); $('#loginError').textContent = ''; try { const d = await api('/api/admin/login', { method: 'POST', body: JSON.stringify(Object.fromEntries(new FormData(e.target))) }); token = d.token; localStorage.setItem('olympus-admin-token', token); show() } catch (err) { $('#loginError').textContent = err.message } };
+        async function load() { try { const d = await api('/api/admin/registrations'); all = d.registrations; $('#total').textContent = d.total; $('#confirmed').textContent = d.confirmed; $('#checked').textContent = all.filter(x => x.status === 'checked-in').length; render() } catch (e) { if (e.message.includes('authentication')) logout(); else alert(e.message) } }
+        function render() { const q = $('#filter').value.toLowerCase(); const rows = all.filter(r => (r.name + r.email + r.code + r.college).toLowerCase().includes(q)); $('#empty').textContent = rows.length ? '' : 'No registrations found.'; $('#rows').innerHTML = rows.map(r => `<tr><td><b>${esc(r.name)}</b><br><span class="muted">${esc(r.year || '')}</span></td><td>${esc(r.email)}<br><span class="muted">${esc(r.phone)}</span></td><td>${esc(r.college)}</td><td><span class="pill">${esc(r.pass)}</span><br>${r.events.map(id => esc(eventName(id))).join(', ')}</td><td><b>${esc(r.code)}</b><br><span class="muted">${new Date(r.createdAt).toLocaleString()}</span></td><td><span class="pill">${esc(r.status)}</span><div class="actions" style="margin-top:8px"><button onclick="setStatus('${r.id}','checked-in')">Check in</button><button class="btn ghost" onclick="setStatus('${r.id}','cancelled')">Cancel</button><button class="btn ghost" onclick="setStatus('${r.id}','confirmed')">Confirm</button></div></td></tr>`).join('') }
+        const names = { 1: "Apollo’s Lyre", 2: "Orpheus Battle of Bands", 3: "Terpsichore", 4: "Dionysus Dance-Off", 5: "Thespis Stage Play", 6: "Muse of Mime", 7: "Athena’s Canvas", 8: "Hephaestus Forge", 9: "Homer’s Odyssey", 10: "Oracle of Delphi Quiz", 11: "Ares Arena", 12: "Zeus’s Thunderbolt" }; function eventName(id) { return names[id] || 'Event' }
+        function esc(x) { return String(x ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])) }
+        window.setStatus = async (id, status) => { try { await api('/api/admin/registrations/' + encodeURIComponent(id), { method: 'PATCH', body: JSON.stringify({ status }) }); await load() } catch (e) { alert(e.message) } };
+        function logout() { token = ''; localStorage.removeItem('olympus-admin-token'); show() }
+        $('#refresh').onclick = load; $('#logout').onclick = logout; $('#filter').oninput = render; show();
+    </script>
+</body>
+
+</html>

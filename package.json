@@ -1,0 +1,13 @@
+{
+  "name": "alegria-rise-of-olympus",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Full-stack Alegria festival website",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}
