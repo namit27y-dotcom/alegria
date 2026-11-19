@@ -133,8 +133,7 @@ function adminRegistration(r) {
 }
 
 async function handleRequest(req, res) {
-  const host = (req.headers && req.headers.host) || 'localhost';
-  const url = new URL(req.url || '/', `http://${host}`);
+  const url = new URL(req.url || '/', 'http://localhost');
   const route = url.pathname;
   try {
     if(req.method==='GET' && route==='/api/health') return send(res,200,{ok:true,service:'Alegria API',database:fsWritable?'file-json':'memory',time:new Date().toISOString()});
